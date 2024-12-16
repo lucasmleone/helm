@@ -1,0 +1,107 @@
+---
+- name: Lab VMs
+  hosts: localhost
+  connection: local
+
+  vars:
+    vm_names:
+      - k8s-controller
+      - k8s-worker
+
+  tasks:
+    - name: Start Multipass VMs
+      theko2fi.multipass.multipass_vm:
+        name: "{{ item }}"
+        cpus: 1
+        memory: 2G
+        disk: 8G
+        state: present
+      with_items: "{{ vm_names }}"
+      register: vm_results
+      tags: start
+
+    - name: Debug vm_results
+      ansible.builtin.debug:
+        var: vm_results
+      tags: debug
+
+    - name: Create .ssh directory
+      ansible.builtin.file:
+        path: .ssh
+        state: directory
+        mode: "0755"
+      tags: start
+
+    - name: Generate ssh keys
+      community.crypto.openssh_keypair:
+        path: .ssh/id_rsa
+      register: ssh
+      tags: start
+
+    - name: Copy ssh keys to VMs
+      theko2fi.multipass.multipass_vm_transfer_into:
+        name: "{{ item }}"
+        src: .ssh/id_rsa.pub
+        dest: /tmp/id_rsa.pub
+      with_items: "{{ vm_names }}"
+      tags: start
+
+    - name: Add ssh keys to Ubuntu user in VMs
+      theko2fi.multipass.multipass_vm_exec:
+        name: "{{ item }}"
+        command: /bin/bash -c "cat /tmp/id_rsa.pub >> ~/.ssh/authorized_keys"
+      with_items: "{{ vm_names }}"
+      tags: start
+
+    - name: Get IP addresses of VMs
+      ansible.builtin.set_fact:
+        vm_ips: "{{ vm_ips | default({}) | combine({item.item: item.result.info[item.item].ipv4[0]}) }}"
+      with_items: "{{ vm_results.results }}"
+      tags: start
+
+    - name: Debug VM IPs
+      ansible.builtin.debug:
+        var: vm_ips
+      tags: debug
+
+    - name: Generate k0sctl.yaml
+      ansible.builtin.copy:
+        dest: ./k0sctl.yaml
+        content: |
+          apiVersion: k0sctl.k0sproject.io/v1beta1
+          kind: Cluster
+          metadata:
+            name: k0s-cluster
+          spec:
+            hosts:
+            - ssh:
+                address: {{ vm_ips['k8s-controller'] }}
+                user: ubuntu
+                port: 22
+                keyPath: .ssh/id_rsa
+              role: controller+worker
+            - ssh:
+                address: {{ vm_ips['k8s-worker'] }}
+                user: ubuntu
+                port: 22
+                keyPath: .ssh/id_rsa
+              role: worker
+        mode: "0644"
+      tags: start
+
+    - name: Update ansible inventory
+      ansible.builtin.copy:
+        dest: ./inventory.ini
+        content: |
+          [k8s-controller]
+          {{ vm_ips['k8s-controller'] }}
+
+          [k8s-worker]
+          {{ vm_ips['k8s-worker'] }}
+
+          [all:vars]
+          ansible_user=ubuntu
+          ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          ansible_ssh_private_key_file=.ssh/id_rsa
+        mode: "0644"
+      tags: inventory
