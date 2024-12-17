@@ -12,7 +12,7 @@ setup:
 
 kubeconfig:
 	@k0sctl kubeconfig --config k0sctl.yaml > k0s.config
-	export KUBECONFIG=/path/to/k0s.config
+	export KUBECONFIG=./k0s.config
 
 clean:
 	@rm -rf k0s.config

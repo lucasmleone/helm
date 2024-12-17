@@ -87,26 +87,18 @@
                 keyPath: .ssh/id_rsa
               role: worker
             k0s:
-              version: v1.27.3+k0s.0
-              config: |
+              version: v1.31.3+k0s.0
+              config:
+                apiVersion: k0s.k0sproject.io/v1beta1
+                kind: ClusterConfig
+                metadata:
+                  name: k8s-k0s-cluster
                 spec:
-                  extensions:
-                    helm:
-                      repositories:
-                        - name: traefik
-                          url: https://traefik.github.io/charts
-                      charts:
-                        - name: traefik
-                          chartname: traefik/traefik
-                          version: "24.0.0"
-                          namespace: kube-system
-                          values: |
-                            service:
-                              annotations:
-                                service.beta.kubernetes.io/aws-load-balancer-type: nlb
-                            ports:
-                              web:
-                                expose: true
+                  images:
+                    calico:
+                      cni:
+                        image: calico/cni
+                        version: v3.16.2
         mode: "0644"
       tags: start
 
