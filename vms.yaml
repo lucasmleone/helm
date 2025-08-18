@@ -16,6 +16,7 @@
         memory: 2G
         disk: 8G
         state: present
+        image: "jammy" # imagen Ubuntu 22.04
       with_items: "{{ vm_names }}"
       register: vm_results
       tags: start
