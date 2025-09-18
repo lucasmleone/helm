@@ -1,0 +1,35 @@
+# pv-definitions.yaml
+
+# --- Volumen para la aplicación 'app' ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: app-volume  # Un nombre único para este PV
+spec:
+  capacity:
+    storage: 1Gi    # Tamaño del volumen
+  accessModes:
+    - ReadWriteOnce # Modo de acceso (un pod a la vez)
+  hostPath:
+    path: "/mnt/data/app" # La carpeta REAL que creamos en el nodo
+  claimRef:
+    namespace: kompose    # El namespace de tu PVC
+    name: app-claim0      # El nombre del PVC que debe usar este volumen
+
+---
+
+# --- Volumen para la base de datos 'db' ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: db-volume   # Un nombre único para este PV
+spec:
+  capacity:
+    storage: 1Gi    # Tamaño del volumen
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data/db"  # La otra carpeta REAL en el nodo
+  claimRef:
+    namespace: kompose    # El namespace de tu PVC
+    name: dbdata         # El nombre del PVC que debe usar este volumen
