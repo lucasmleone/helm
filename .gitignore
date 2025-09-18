@@ -1,8 +1,0 @@
-# k8s configurations
-k0s*
-
-# ansible files
-inventory*
-
-# keypair folder
-.ssh
